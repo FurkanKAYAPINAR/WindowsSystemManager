@@ -48,3 +48,7 @@ Desktop.ini
 
 # macOS
 .DS_Store
+
+# Release artifacts
+*.zip
+publish/
