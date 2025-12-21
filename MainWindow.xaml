@@ -1,0 +1,460 @@
+<!-- ============================================================================
+     Windows System Manager - Main Window
+     Author: FurkanKAYAPINAR
+     Version: 1.3.0
+     Description: Windows Task Scheduler and Services Management Application
+     Copyright © 2024 FurkanKAYAPINAR - All Rights Reserved
+     ============================================================================ -->
+<Window x:Class="WindowsSystemManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Windows System Manager - by FurkanKAYAPINAR" 
+        Height="800" Width="1200"
+        MinHeight="600" MinWidth="900"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundBrush}">
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" Padding="24,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🖥️" FontSize="28" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Windows System Manager" 
+                                       FontSize="22" 
+                                       FontWeight="Bold" 
+                                       Foreground="{StaticResource TextBrush}"/>
+                            <Border Background="{StaticResource PrimaryBrush}" CornerRadius="8" Padding="8,2" Margin="12,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="v1.3.0" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="Task Scheduler &amp; Services Management" 
+                                   FontSize="12" 
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <Button Grid.Column="1" 
+                        Content="↻ Refresh All" 
+                        Style="{StaticResource ModernButton}"
+                        Click="RefreshAll_Click"/>
+            </Grid>
+        </Border>
+        
+        <!-- Tab Control -->
+        <TabControl Grid.Row="1" Grid.RowSpan="2" 
+                    Style="{StaticResource ModernTabControl}"
+                    Margin="24,16,24,24"
+                    x:Name="MainTabControl">
+            
+            <!-- Services Tab -->
+            <TabItem Header="⚙️ Services" Style="{StaticResource ModernTabItem}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Search and Actions Bar -->
+                    <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" CornerRadius="12" Padding="16" Margin="0,8,0,16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Search Box -->
+                            <Grid Width="500" HorizontalAlignment="Left">
+                                <TextBox x:Name="ServicesSearchBox" 
+                                         Style="{StaticResource ModernTextBox}"
+                                         TextChanged="ServicesSearchBox_TextChanged"
+                                         Padding="36,10,12,10"/>
+                                <TextBlock Text="🔍" 
+                                           IsHitTestVisible="False"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="12,0,0,0"
+                                           FontSize="14"/>
+                                <TextBlock Text="Search services..." 
+                                           IsHitTestVisible="False"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="36,0,0,0"
+                                           x:Name="ServicesSearchPlaceholder"/>
+                            </Grid>
+                            
+                            <!-- Action Buttons -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button Content="▶ Start" 
+                                        Style="{StaticResource SuccessButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="StartServices_Click"/>
+                                <Button Content="⏹ Stop" 
+                                        Style="{StaticResource WarningButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="StopServices_Click"/>
+                                <Button Content="🔄 Restart" 
+                                        Style="{StaticResource ModernButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="RestartServices_Click"/>
+                                <Button Content="↻ Refresh" 
+                                        Style="{StaticResource ModernButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="RefreshServices_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Select All -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="8,0,0,8">
+                        <CheckBox x:Name="SelectAllServicesCheckBox" 
+                                  Style="{StaticResource ModernCheckBox}"
+                                  Click="SelectAllServices_Click"/>
+                        <TextBlock Text="Select All" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" 
+                                   VerticalAlignment="Center"
+                                   Margin="4,0,0,0"/>
+                        <TextBlock x:Name="ServicesCountText" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" 
+                                   VerticalAlignment="Center"
+                                   Margin="16,0,0,0"/>
+                    </StackPanel>
+                    
+                    <!-- Services DataGrid -->
+                    <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" CornerRadius="12" Padding="8">
+                        <DataGrid x:Name="ServicesDataGrid" 
+                                  Style="{StaticResource ModernDataGrid}"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling"
+                                  EnableRowVirtualization="True"
+                                  CanUserSortColumns="True"
+                                  IsReadOnly="True">
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="📂 Open Folder" Click="OpenServiceFolder_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="▶ Start" Click="StartServices_Click"/>
+                                    <MenuItem Header="⏹ Stop" Click="StopServices_Click"/>
+                                    <MenuItem Header="🔄 Restart" Click="RestartServices_Click"/>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="50" CanUserSort="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" 
+                                                      Style="{StaticResource ModernCheckBox}"
+                                                      HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="SERVICE NAME" Binding="{Binding ServiceName}" Width="150" CanUserSort="True" SortMemberPath="ServiceName"/>
+                                <DataGridTextColumn Header="PUBLISHER" Binding="{Binding Publisher}" Width="150" CanUserSort="True" SortMemberPath="Publisher"/>
+                                <DataGridTextColumn Header="DISPLAY NAME" Binding="{Binding DisplayName}" Width="200" CanUserSort="True" SortMemberPath="DisplayName"/>
+                                <DataGridTextColumn Header="DESCRIPTION" Binding="{Binding Description}" Width="*" CanUserSort="True" SortMemberPath="Description"/>
+                                <DataGridTemplateColumn Header="STATUS" Width="100" CanUserSort="True" SortMemberPath="Status">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{Binding StatusBackground}" 
+                                                    CornerRadius="12" 
+                                                    Padding="12,4"
+                                                    HorizontalAlignment="Left">
+                                                <TextBlock Text="{Binding Status}" 
+                                                           Foreground="White" 
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="STARTUP" Binding="{Binding StartType}" Width="100" CanUserSort="True" SortMemberPath="StartType"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+            
+            <!-- Scheduled Tasks Tab -->
+            <TabItem Header="📋 Scheduled Tasks" Style="{StaticResource ModernTabItem}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Search and Actions Bar -->
+                    <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" CornerRadius="12" Padding="16" Margin="0,8,0,16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Search Box -->
+                            <Grid Width="500" HorizontalAlignment="Left">
+                                <TextBox x:Name="TasksSearchBox" 
+                                         Style="{StaticResource ModernTextBox}"
+                                         TextChanged="TasksSearchBox_TextChanged"
+                                         Padding="36,10,12,10"/>
+                                <TextBlock Text="🔍" 
+                                           IsHitTestVisible="False"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="12,0,0,0"
+                                           FontSize="14"/>
+                                <TextBlock Text="Search tasks..." 
+                                           IsHitTestVisible="False"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="36,0,0,0"
+                                           x:Name="TasksSearchPlaceholder"/>
+                            </Grid>
+                            
+                            <!-- Action Buttons -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button Content="▶ Run" 
+                                        Style="{StaticResource SuccessButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="RunTasks_Click"/>
+                                <Button Content="⏹ Stop" 
+                                        Style="{StaticResource WarningButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="StopTasks_Click"/>
+                                <Button Content="✓ Enable" 
+                                        Style="{StaticResource ModernButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="EnableTasks_Click"/>
+                                <Button Content="✗ Disable" 
+                                        Style="{StaticResource WarningButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="DisableTasks_Click"/>
+                                <Button Content="🗑 Delete" 
+                                        Style="{StaticResource DangerButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="DeleteTasks_Click"/>
+                                <Button Content="↻ Refresh" 
+                                        Style="{StaticResource ModernButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="RefreshTasks_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Select All -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="8,0,0,8">
+                        <CheckBox x:Name="SelectAllTasksCheckBox" 
+                                  Style="{StaticResource ModernCheckBox}"
+                                  Click="SelectAllTasks_Click"/>
+                        <TextBlock Text="Select All" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" 
+                                   VerticalAlignment="Center"
+                                   Margin="4,0,0,0"/>
+                        <TextBlock x:Name="TasksCountText" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" 
+                                   VerticalAlignment="Center"
+                                   Margin="16,0,0,0"/>
+                    </StackPanel>
+                    
+                    <!-- Tasks DataGrid -->
+                    <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" CornerRadius="12" Padding="8">
+                        <DataGrid x:Name="TasksDataGrid" 
+                                  Style="{StaticResource ModernDataGrid}"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling"
+                                  EnableRowVirtualization="True"
+                                  CanUserSortColumns="True"
+                                  IsReadOnly="True">
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="📂 Open Folder" Click="OpenTaskFolder_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="▶ Run" Click="RunTasks_Click"/>
+                                    <MenuItem Header="⏹ Stop" Click="StopTasks_Click"/>
+                                    <MenuItem Header="✓ Enable" Click="EnableTasks_Click"/>
+                                    <MenuItem Header="✗ Disable" Click="DisableTasks_Click"/>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="50" CanUserSort="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" 
+                                                      Style="{StaticResource ModernCheckBox}"
+                                                      HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="TASK NAME" Binding="{Binding Name}" Width="200" CanUserSort="True" SortMemberPath="Name"/>
+                                <DataGridTextColumn Header="AUTHOR" Binding="{Binding Author}" Width="150" CanUserSort="True" SortMemberPath="Author"/>
+                                <DataGridTextColumn Header="PATH" Binding="{Binding Path}" Width="*" CanUserSort="True" SortMemberPath="Path"/>
+                                <DataGridTemplateColumn Header="STATE" Width="120" CanUserSort="True" SortMemberPath="State">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{Binding StateBackground}" 
+                                                    CornerRadius="12" 
+                                                    Padding="12,4"
+                                                    HorizontalAlignment="Left">
+                                                <TextBlock Text="{Binding State}" 
+                                                           Foreground="White" 
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="LAST RUN" Binding="{Binding LastRunTime}" Width="150" CanUserSort="True" SortMemberPath="LastRunTime"/>
+                                <DataGridTextColumn Header="NEXT RUN" Binding="{Binding NextRunTime}" Width="150" CanUserSort="True" SortMemberPath="NextRunTime"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+            
+            <!-- Processes Tab -->
+            <TabItem Header="📊 Processes" Style="{StaticResource ModernTabItem}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Search and Actions Bar -->
+                    <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" CornerRadius="12" Padding="16" Margin="0,8,0,16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Search Box -->
+                            <Grid Width="500" HorizontalAlignment="Left">
+                                <TextBox x:Name="ProcessesSearchBox" 
+                                         Style="{StaticResource ModernTextBox}"
+                                         TextChanged="ProcessesSearchBox_TextChanged"
+                                         Padding="36,10,12,10"/>
+                                <TextBlock Text="🔍" 
+                                           IsHitTestVisible="False"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="12,0,0,0"
+                                           FontSize="14"/>
+                                <TextBlock Text="Search processes..." 
+                                           IsHitTestVisible="False"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="36,0,0,0"
+                                           x:Name="ProcessesSearchPlaceholder"/>
+                            </Grid>
+                            
+                            <!-- Action Buttons -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button Content="⏹ End Task" 
+                                        Style="{StaticResource DangerButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="EndProcess_Click"/>
+                                <Button Content="↻ Refresh" 
+                                        Style="{StaticResource ModernButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="RefreshProcesses_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Select All -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="8,0,0,8">
+                        <CheckBox x:Name="SelectAllProcessesCheckBox" 
+                                  Style="{StaticResource ModernCheckBox}"
+                                  Click="SelectAllProcesses_Click"/>
+                        <TextBlock Text="Select All" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" 
+                                   VerticalAlignment="Center"
+                                   Margin="4,0,0,0"/>
+                        <TextBlock x:Name="ProcessesCountText" 
+                                   Foreground="{StaticResource TextSecondaryBrush}" 
+                                   VerticalAlignment="Center"
+                                   Margin="16,0,0,0"/>
+                    </StackPanel>
+                    
+                    <!-- Processes DataGrid -->
+                    <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" CornerRadius="12" Padding="8">
+                        <DataGrid x:Name="ProcessesDataGrid" 
+                                  Style="{StaticResource ModernDataGrid}"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling"
+                                  EnableRowVirtualization="True"
+                                  CanUserSortColumns="True"
+                                  IsReadOnly="True">
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="📂 Open File Location" Click="OpenProcessFolder_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="⏹ End Task" Click="EndProcess_Click"/>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="50" CanUserSort="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" 
+                                                      Style="{StaticResource ModernCheckBox}"
+                                                      HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="PID" Binding="{Binding ProcessId}" Width="80" CanUserSort="True" SortMemberPath="ProcessId"/>
+                                <DataGridTextColumn Header="PROCESS NAME" Binding="{Binding ProcessName}" Width="180" CanUserSort="True" SortMemberPath="ProcessName"/>
+                                <DataGridTextColumn Header="WINDOW TITLE" Binding="{Binding WindowTitle}" Width="200" CanUserSort="True" SortMemberPath="WindowTitle"/>
+                                <DataGridTextColumn Header="MEMORY (MB)" Binding="{Binding MemoryMB}" Width="100" CanUserSort="True" SortMemberPath="MemoryBytes"/>
+                                <DataGridTextColumn Header="CPU %" Binding="{Binding CpuPercent}" Width="70" CanUserSort="True" SortMemberPath="CpuPercent"/>
+                                <DataGridTextColumn Header="UPTIME" Binding="{Binding Uptime}" Width="100" CanUserSort="True" SortMemberPath="Uptime"/>
+                                <DataGridTextColumn Header="PATH" Binding="{Binding FilePath}" Width="*" CanUserSort="True" SortMemberPath="FilePath"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+        
+        <!-- Status Bar -->
+        <Border Grid.Row="3" Background="{StaticResource SurfaceBrush}" Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock x:Name="StatusText" 
+                           Text="Ready" 
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"/>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Text="v1.2.0" 
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,16,0"/>
+                    <TextBlock Text="⚡ Running as Administrator" 
+                               Foreground="{StaticResource SuccessBrush}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
