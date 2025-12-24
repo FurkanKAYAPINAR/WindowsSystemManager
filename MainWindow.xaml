@@ -1,7 +1,7 @@
 <!-- ============================================================================
      Windows System Manager - Main Window
      Author: FurkanKAYAPINAR
-     Version: 1.3.0
+     Version: 1.4.0
      Description: Windows Task Scheduler and Services Management Application
      Copyright © 2024 FurkanKAYAPINAR - All Rights Reserved
      ============================================================================ -->
@@ -39,7 +39,7 @@
                                        FontWeight="Bold" 
                                        Foreground="{StaticResource TextBrush}"/>
                             <Border Background="{StaticResource PrimaryBrush}" CornerRadius="8" Padding="8,2" Margin="12,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="v1.3.0" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                                <TextBlock Text="v1.4.0" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
                             </Border>
                         </StackPanel>
                         <TextBlock Text="Task Scheduler &amp; Services Management" 
@@ -83,7 +83,8 @@
                                 <TextBox x:Name="ServicesSearchBox" 
                                          Style="{StaticResource ModernTextBox}"
                                          TextChanged="ServicesSearchBox_TextChanged"
-                                         Padding="36,10,12,10"/>
+                                         Padding="36,10,12,10"
+                                         VerticalContentAlignment="Center"/>
                                 <TextBlock Text="🔍" 
                                            IsHitTestVisible="False"
                                            Foreground="{StaticResource TextSecondaryBrush}"
@@ -112,6 +113,18 @@
                                         Style="{StaticResource ModernButton}" 
                                         Margin="8,0,0,0"
                                         Click="RestartServices_Click"/>
+                                <Button Content="⛔ Disable" 
+                                        Style="{StaticResource WarningButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="DisableServices_Click"/>
+                                <Button Content="🗑 Delete" 
+                                        Style="{StaticResource DangerButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="DeleteServices_Click"/>
+                                <Button Content="📋 Properties" 
+                                        Style="{StaticResource ModernButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="ServiceProperties_Click"/>
                                 <Button Content="↻ Refresh" 
                                         Style="{StaticResource ModernButton}" 
                                         Margin="8,0,0,0"
@@ -147,10 +160,14 @@
                             <DataGrid.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem Header="📂 Open Folder" Click="OpenServiceFolder_Click"/>
+                                    <MenuItem Header="📋 Properties" Click="ServiceProperties_Click"/>
                                     <Separator/>
                                     <MenuItem Header="▶ Start" Click="StartServices_Click"/>
                                     <MenuItem Header="⏹ Stop" Click="StopServices_Click"/>
                                     <MenuItem Header="🔄 Restart" Click="RestartServices_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="⛔ Disable" Click="DisableServices_Click"/>
+                                    <MenuItem Header="🗑 Delete" Click="DeleteServices_Click" Foreground="#EF4444"/>
                                 </ContextMenu>
                             </DataGrid.ContextMenu>
                             <DataGrid.Columns>
@@ -207,24 +224,37 @@
                             </Grid.ColumnDefinitions>
                             
                             <!-- Search Box -->
-                            <Grid Width="500" HorizontalAlignment="Left">
-                                <TextBox x:Name="TasksSearchBox" 
-                                         Style="{StaticResource ModernTextBox}"
-                                         TextChanged="TasksSearchBox_TextChanged"
-                                         Padding="36,10,12,10"/>
-                                <TextBlock Text="🔍" 
-                                           IsHitTestVisible="False"
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <Grid Width="400">
+                                    <TextBox x:Name="TasksSearchBox" 
+                                             Style="{StaticResource ModernTextBox}"
+                                             TextChanged="TasksSearchBox_TextChanged"
+                                             Padding="36,10,12,10"
+                                             VerticalContentAlignment="Center"/>
+                                    <TextBlock Text="🔍" 
+                                               IsHitTestVisible="False"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="12,0,0,0"
+                                               FontSize="14"/>
+                                    <TextBlock Text="Search tasks..." 
+                                               IsHitTestVisible="False"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="36,0,0,0"
+                                               x:Name="TasksSearchPlaceholder"/>
+                                </Grid>
+                                <CheckBox x:Name="HideMicrosoftTasksCheckBox"
+                                          Style="{StaticResource ModernCheckBox}"
+                                          IsChecked="True"
+                                          Margin="16,0,0,0"
+                                          VerticalAlignment="Center"
+                                          Click="HideMicrosoftTasks_Click"/>
+                                <TextBlock Text="Hide Microsoft Tasks"
                                            Foreground="{StaticResource TextSecondaryBrush}"
                                            VerticalAlignment="Center"
-                                           Margin="12,0,0,0"
-                                           FontSize="14"/>
-                                <TextBlock Text="Search tasks..." 
-                                           IsHitTestVisible="False"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                           VerticalAlignment="Center"
-                                           Margin="36,0,0,0"
-                                           x:Name="TasksSearchPlaceholder"/>
-                            </Grid>
+                                           Margin="4,0,0,0"/>
+                            </StackPanel>
                             
                             <!-- Action Buttons -->
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -348,7 +378,8 @@
                                 <TextBox x:Name="ProcessesSearchBox" 
                                          Style="{StaticResource ModernTextBox}"
                                          TextChanged="ProcessesSearchBox_TextChanged"
-                                         Padding="36,10,12,10"/>
+                                         Padding="36,10,12,10"
+                                         VerticalContentAlignment="Center"/>
                                 <TextBlock Text="🔍" 
                                            IsHitTestVisible="False"
                                            Foreground="{StaticResource TextSecondaryBrush}"

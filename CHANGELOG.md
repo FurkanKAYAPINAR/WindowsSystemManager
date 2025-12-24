@@ -5,7 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2024-12-24
+
+### Added
+- **Services Tab - New Features**
+  - ⛔ **Disable Service** - Disable services to prevent automatic startup
+  - 🗑️ **Delete Service** - Remove services with double confirmation (requires typing service name)
+  - 📋 **Service Properties** - View detailed service information in a popup window
+  - Context menu with all service actions
+- **Tasks Tab - Microsoft Filter**
+  - ☑️ **Hide Microsoft Tasks** - Filter out Microsoft system tasks (enabled by default)
+  - Cleaner task list focusing on user/third-party tasks
+- **UI Improvements**
+  - Enhanced search box styling
+  - Better visual feedback for actions
+
+### Fixed
+- **Next Run Display** - Now correctly shows "Disabled" or "Trigger-based" for tasks without scheduled time
+- Search box visual alignment issues
+
+### Security
+- Delete service requires double confirmation with service name verification
+- Prevents accidental deletion of critical system services
+
 ## [1.3.0] - 2024-12-21
+
 
 ### Added
 - **System Tray Integration**

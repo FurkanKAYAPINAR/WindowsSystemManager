@@ -18,9 +18,9 @@
     <Copyright>Copyright © 2024 FurkanKAYAPINAR</Copyright>
     <Product>Windows System Manager</Product>
     <Description>Windows Task Scheduler and Services Management Application by FurkanKAYAPINAR</Description>
-    <Version>1.3.0</Version>
-    <FileVersion>1.3.0.0</FileVersion>
-    <AssemblyVersion>1.3.0.0</AssemblyVersion>
+    <Version>1.4.0</Version>
+    <FileVersion>1.4.0.0</FileVersion>
+    <AssemblyVersion>1.4.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,7 +1,7 @@
 // ============================================================================
 // Windows System Manager - Main Window
 // Author: FurkanKAYAPINAR
-// Version: 1.3.0
+// Version: 1.4.0
 // Description: Windows Task Scheduler and Services Management Application
 // Copyright © 2024 FurkanKAYAPINAR - All Rights Reserved
 // ============================================================================
@@ -458,6 +458,262 @@ namespace WindowsSystemManager
             }
         }
 
+        private async void DisableServices_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = _filteredServices.Where(s => s.IsSelected).ToList();
+            if (!selected.Any())
+            {
+                var item = ServicesDataGrid.SelectedItem as ServiceItem;
+                if (item != null) selected = new List<ServiceItem> { item };
+            }
+            
+            if (!selected.Any())
+            {
+                System.Windows.MessageBox.Show("Please select at least one service.", "No Selection", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var result = System.Windows.MessageBox.Show($"Disable {selected.Count} service(s)?\n\nDisabled services will not start automatically.", 
+                "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result != MessageBoxResult.Yes) return;
+
+            foreach (var service in selected)
+            {
+                try
+                {
+                    using var process = new Process();
+                    process.StartInfo.FileName = "sc.exe";
+                    process.StartInfo.Arguments = $"config \"{service.ServiceName}\" start= disabled";
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.CreateNoWindow = true;
+                    process.Start();
+                    process.WaitForExit();
+                    SetStatus($"Disabled: {service.DisplayName}");
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"Error disabling {service.DisplayName}: {ex.Message}", "Error");
+                }
+            }
+            await LoadServicesAsync();
+        }
+
+        private async void DeleteServices_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = _filteredServices.Where(s => s.IsSelected).ToList();
+            if (!selected.Any())
+            {
+                var item = ServicesDataGrid.SelectedItem as ServiceItem;
+                if (item != null) selected = new List<ServiceItem> { item };
+            }
+            
+            if (!selected.Any())
+            {
+                System.Windows.MessageBox.Show("Please select at least one service.", "No Selection", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // First confirmation
+            var result1 = System.Windows.MessageBox.Show(
+                $"⚠️ WARNING: You are about to DELETE {selected.Count} service(s)!\n\n" +
+                "This action CANNOT be undone!\n\n" +
+                "Are you sure you want to continue?", 
+                "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result1 != MessageBoxResult.Yes) return;
+
+            // Second confirmation - type service name
+            var serviceNames = string.Join(", ", selected.Select(s => s.ServiceName));
+            var confirmText = selected.Count == 1 ? selected[0].ServiceName : "DELETE";
+            
+            var inputDialog = new System.Windows.Window
+            {
+                Title = "Confirm Delete",
+                Width = 400,
+                Height = 180,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = this,
+                ResizeMode = ResizeMode.NoResize,
+                Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30))
+            };
+
+            var stack = new StackPanel { Margin = new Thickness(20) };
+            stack.Children.Add(new TextBlock 
+            { 
+                Text = $"Type \"{confirmText}\" to confirm deletion:", 
+                Foreground = System.Windows.Media.Brushes.White,
+                Margin = new Thickness(0, 0, 0, 10)
+            });
+            
+            var textBox = new System.Windows.Controls.TextBox 
+            { 
+                Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(45, 45, 45)),
+                Foreground = System.Windows.Media.Brushes.White,
+                Padding = new Thickness(10),
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(80, 80, 80))
+            };
+            stack.Children.Add(textBox);
+
+            var buttonPanel = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Right, Margin = new Thickness(0, 15, 0, 0) };
+            var cancelBtn = new System.Windows.Controls.Button { Content = "Cancel", Padding = new Thickness(20, 8, 20, 8), Margin = new Thickness(0, 0, 10, 0) };
+            var deleteBtn = new System.Windows.Controls.Button { Content = "Delete", Padding = new Thickness(20, 8, 20, 8), Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68)), Foreground = System.Windows.Media.Brushes.White };
+            
+            cancelBtn.Click += (s, args) => { inputDialog.DialogResult = false; inputDialog.Close(); };
+            deleteBtn.Click += (s, args) => 
+            { 
+                if (textBox.Text == confirmText)
+                {
+                    inputDialog.DialogResult = true;
+                    inputDialog.Close();
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show("Text does not match. Deletion cancelled.", "Cancelled");
+                    inputDialog.DialogResult = false;
+                    inputDialog.Close();
+                }
+            };
+            
+            buttonPanel.Children.Add(cancelBtn);
+            buttonPanel.Children.Add(deleteBtn);
+            stack.Children.Add(buttonPanel);
+            inputDialog.Content = stack;
+
+            if (inputDialog.ShowDialog() != true) return;
+
+            // Perform deletion
+            foreach (var service in selected)
+            {
+                try
+                {
+                    // First stop the service
+                    await ControlServiceAsync(service.ServiceName, "stop");
+                    
+                    // Then delete it
+                    using var process = new Process();
+                    process.StartInfo.FileName = "sc.exe";
+                    process.StartInfo.Arguments = $"delete \"{service.ServiceName}\"";
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.CreateNoWindow = true;
+                    process.Start();
+                    process.WaitForExit();
+                    SetStatus($"Deleted: {service.DisplayName}");
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"Error deleting {service.DisplayName}: {ex.Message}", "Error");
+                }
+            }
+            await LoadServicesAsync();
+        }
+
+        private void ServiceProperties_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = ServicesDataGrid.SelectedItem as ServiceItem;
+            if (selected == null)
+            {
+                System.Windows.MessageBox.Show("Please select a service.", "No Selection", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                string imagePath = "";
+                string startType = "";
+                string logOnAs = "";
+                string dependencies = "";
+
+                using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                    $@"SYSTEM\CurrentControlSet\Services\{selected.ServiceName}");
+                if (key != null)
+                {
+                    imagePath = key.GetValue("ImagePath") as string ?? "";
+                    var start = key.GetValue("Start");
+                    startType = start switch
+                    {
+                        0 => "Boot",
+                        1 => "System",
+                        2 => "Automatic",
+                        3 => "Manual",
+                        4 => "Disabled",
+                        _ => "Unknown"
+                    };
+                    logOnAs = key.GetValue("ObjectName") as string ?? "LocalSystem";
+                    
+                    var deps = key.GetValue("DependOnService") as string[];
+                    dependencies = deps != null ? string.Join(", ", deps) : "None";
+                }
+
+                var propsWindow = new System.Windows.Window
+                {
+                    Title = $"Properties: {selected.DisplayName}",
+                    Width = 500,
+                    Height = 450,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    Owner = this,
+                    ResizeMode = ResizeMode.NoResize,
+                    Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30))
+                };
+
+                var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+                var stack = new StackPanel { Margin = new Thickness(20) };
+
+                void AddProperty(string label, string value)
+                {
+                    stack.Children.Add(new TextBlock 
+                    { 
+                        Text = label, 
+                        Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(156, 163, 175)),
+                        FontSize = 12,
+                        Margin = new Thickness(0, 10, 0, 2)
+                    });
+                    stack.Children.Add(new System.Windows.Controls.TextBox 
+                    { 
+                        Text = value, 
+                        IsReadOnly = true,
+                        Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(45, 45, 45)),
+                        Foreground = System.Windows.Media.Brushes.White,
+                        Padding = new Thickness(10),
+                        BorderThickness = new Thickness(1),
+                        BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(80, 80, 80)),
+                        TextWrapping = TextWrapping.Wrap
+                    });
+                }
+
+                AddProperty("Service Name", selected.ServiceName);
+                AddProperty("Display Name", selected.DisplayName);
+                AddProperty("Status", selected.Status);
+                AddProperty("Start Type", startType);
+                AddProperty("Publisher", selected.Publisher);
+                AddProperty("Description", selected.Description);
+                AddProperty("Executable Path", imagePath);
+                AddProperty("Log On As", logOnAs);
+                AddProperty("Dependencies", dependencies);
+
+                var closeBtn = new System.Windows.Controls.Button 
+                { 
+                    Content = "Close", 
+                    Padding = new Thickness(30, 10, 30, 10), 
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+                    Margin = new Thickness(0, 20, 0, 0)
+                };
+                closeBtn.Click += (s, args) => propsWindow.Close();
+                stack.Children.Add(closeBtn);
+
+                scroll.Content = stack;
+                propsWindow.Content = scroll;
+                propsWindow.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error loading properties: {ex.Message}", "Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
 
         #region Scheduled Tasks
@@ -472,15 +728,30 @@ namespace WindowsSystemManager
                 {
                     using var ts = new TaskService();
                     var tasks = GetAllTasks(ts.RootFolder)
-                        .Select(t => new TaskItem
+                        .Select(t => 
                         {
-                            Name = t.Name,
-                            Path = t.Path,
-                            State = t.State.ToString(),
-                            Author = t.Definition?.RegistrationInfo?.Author ?? "Unknown",
-                            LastRunTime = t.LastRunTime == DateTime.MinValue ? "Never" : t.LastRunTime.ToString("g"),
-                            NextRunTime = t.NextRunTime == DateTime.MinValue ? "Not scheduled" : t.NextRunTime.ToString("g"),
-                            StateBackground = GetTaskStateBrush(t.State)
+                            string nextRun = "Not scheduled";
+                            try
+                            {
+                                if (t.State == TaskState.Disabled)
+                                    nextRun = "Disabled";
+                                else if (t.NextRunTime != DateTime.MinValue && t.NextRunTime > DateTime.Now.AddYears(-1))
+                                    nextRun = t.NextRunTime.ToString("g");
+                                else if (t.Definition?.Triggers?.Count > 0)
+                                    nextRun = "Trigger-based";
+                            }
+                            catch { }
+                            
+                            return new TaskItem
+                            {
+                                Name = t.Name,
+                                Path = t.Path,
+                                State = t.State.ToString(),
+                                Author = t.Definition?.RegistrationInfo?.Author ?? "Unknown",
+                                LastRunTime = t.LastRunTime == DateTime.MinValue ? "Never" : t.LastRunTime.ToString("g"),
+                                NextRunTime = nextRun,
+                                StateBackground = GetTaskStateBrush(t.State)
+                            };
                         })
                         .OrderBy(t => t.Path)
                         .ToList();
@@ -538,9 +809,12 @@ namespace WindowsSystemManager
         private void FilterTasks()
         {
             var searchText = TasksSearchBox.Text?.ToLower() ?? "";
+            var hideMicrosoft = HideMicrosoftTasksCheckBox.IsChecked ?? false;
+            
             var filtered = _allTasks.Where(t => 
-                t.Name.ToLower().Contains(searchText) || 
-                t.Path.ToLower().Contains(searchText));
+                (t.Name.ToLower().Contains(searchText) || 
+                t.Path.ToLower().Contains(searchText)) &&
+                (!hideMicrosoft || !IsMicrosoftTask(t.Author)));
             
             _filteredTasks.Clear();
             foreach (var task in filtered)
@@ -548,6 +822,18 @@ namespace WindowsSystemManager
                 _filteredTasks.Add(task);
             }
             UpdateTasksCount();
+        }
+
+        private bool IsMicrosoftTask(string author)
+        {
+            if (string.IsNullOrEmpty(author)) return false;
+            var lower = author.ToLower();
+            return lower.Contains("microsoft") || lower == "system" || lower == "$(@mslogostring)";
+        }
+
+        private void HideMicrosoftTasks_Click(object sender, RoutedEventArgs e)
+        {
+            FilterTasks();
         }
 
         private void UpdateTasksCount()
