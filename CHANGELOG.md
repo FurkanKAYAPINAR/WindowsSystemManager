@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2025-12-26
+
+### Added
+- **Network Connections Tab**
+  - View all TCP/UDP connections with process info
+  - Protocol, local/remote address, state information
+  - Search and filter functionality
+- **Drives Tab**
+  - View all disk drives with usage statistics
+  - Visual progress bars for disk usage
+- **Startup Manager Tab**
+  - Manage Windows startup programs
+  - Enable/Disable startup items
+  - View startup item status and impact
+- **Header Performance Indicators**
+  - Real-time CPU usage percentage
+  - RAM usage with percentage and size
+  - Network download/upload speed
+
+### Changed
+- Copyright year updated to 2025
+- Improved UI with modern design elements
+- Enhanced data grid styling
+
+### Fixed
+- Services tab now sorts Running services first by default
+- Memory optimizations for large data sets
+
 ## [1.4.0] - 2024-12-24
 
 ### Added

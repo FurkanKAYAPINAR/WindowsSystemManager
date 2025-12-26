@@ -1,7 +1,7 @@
 <!-- ============================================================================
      Windows System Manager - Main Window
      Author: FurkanKAYAPINAR
-     Version: 1.4.0
+     Version: 1.5.0
      Description: Windows Task Scheduler and Services Management Application
      Copyright © 2024 FurkanKAYAPINAR - All Rights Reserved
      ============================================================================ -->
@@ -39,7 +39,7 @@
                                        FontWeight="Bold" 
                                        Foreground="{StaticResource TextBrush}"/>
                             <Border Background="{StaticResource PrimaryBrush}" CornerRadius="8" Padding="8,2" Margin="12,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="v1.4.0" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                                <TextBlock Text="v1.5.0" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
                             </Border>
                         </StackPanel>
                         <TextBlock Text="Task Scheduler &amp; Services Management" 

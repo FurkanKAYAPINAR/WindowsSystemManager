@@ -1,7 +1,7 @@
 // ============================================================================
 // Windows System Manager
 // Author: FurkanKAYAPINAR
-// Version: 1.4.0
+// Version: 1.5.0
 // Description: Windows Task Scheduler and Services Management Application
 // Copyright © 2024 FurkanKAYAPINAR - All Rights Reserved
 // ============================================================================
