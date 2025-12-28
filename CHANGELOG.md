@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2024-12-28
+
+### Added
+- **🔍 Process Watcher Tab** - Real-time process monitoring using WMI
+  - Live process start/stop event tracking
+  - Command line capture for started processes
+  - Parent process ID and name resolution
+  - User account information for each process
+  - Statistics panel (Total events, Starts, Stops)
+  - Start/Stop monitoring toggle button
+  - Auto-scroll option for real-time viewing
+  - Event filtering by process name, PID, or command line
+  - **Export** events to JSON or CSV format
+  - Maximum 1000 events kept in memory
+
+### Technical
+- Added `System.Management` package for WMI event subscription
+- Implemented `Win32_ProcessStartTrace` and `Win32_ProcessStopTrace` event handlers
+- Color-coded event badges (green=Start, red=Stop)
+
 ## [1.5.0] - 2025-12-26
 
 ### Added

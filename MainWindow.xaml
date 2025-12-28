@@ -39,7 +39,7 @@
                                        FontWeight="Bold" 
                                        Foreground="{StaticResource TextBrush}"/>
                             <Border Background="{StaticResource PrimaryBrush}" CornerRadius="8" Padding="8,2" Margin="12,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="v1.5.0" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
+                                <TextBlock Text="v1.6.0" FontSize="11" Foreground="White" FontWeight="SemiBold"/>
                             </Border>
                         </StackPanel>
                         <TextBlock Text="Task Scheduler &amp; Services Management" 
@@ -456,6 +456,143 @@
                                 <DataGridTextColumn Header="CPU %" Binding="{Binding CpuPercent}" Width="70" CanUserSort="True" SortMemberPath="CpuPercent"/>
                                 <DataGridTextColumn Header="UPTIME" Binding="{Binding Uptime}" Width="100" CanUserSort="True" SortMemberPath="Uptime"/>
                                 <DataGridTextColumn Header="PATH" Binding="{Binding FilePath}" Width="*" CanUserSort="True" SortMemberPath="FilePath"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+            
+            <!-- Process Watcher Tab -->
+            <TabItem Header="🔍 Process Watcher" Style="{StaticResource ModernTabItem}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Control Bar -->
+                    <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" CornerRadius="12" Padding="16" Margin="0,8,0,16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Search and Controls -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <Grid Width="350">
+                                    <TextBox x:Name="ProcessWatcherSearchBox" 
+                                             Style="{StaticResource ModernTextBox}"
+                                             TextChanged="ProcessWatcherSearchBox_TextChanged"
+                                             Padding="36,10,12,10"
+                                             VerticalContentAlignment="Center"/>
+                                    <TextBlock Text="🔍" 
+                                               IsHitTestVisible="False"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="12,0,0,0"
+                                               FontSize="14"/>
+                                    <TextBlock Text="Filter events..." 
+                                               IsHitTestVisible="False"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="36,0,0,0"
+                                               x:Name="ProcessWatcherSearchPlaceholder"/>
+                                </Grid>
+                                
+                                <CheckBox x:Name="AutoScrollCheckBox"
+                                          Style="{StaticResource ModernCheckBox}"
+                                          IsChecked="True"
+                                          Margin="16,0,0,0"
+                                          VerticalAlignment="Center"/>
+                                <TextBlock Text="Auto-scroll"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="4,0,0,0"/>
+                            </StackPanel>
+                            
+                            <!-- Action Buttons -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button x:Name="StartStopWatcherButton"
+                                        Content="▶ Start Monitoring" 
+                                        Style="{StaticResource SuccessButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="ToggleProcessWatcher_Click"/>
+                                <Button Content="🗑 Clear" 
+                                        Style="{StaticResource WarningButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="ClearProcessEvents_Click"/>
+                                <Button Content="💾 Export" 
+                                        Style="{StaticResource ModernButton}" 
+                                        Margin="8,0,0,0"
+                                        Click="ExportProcessEvents_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- Stats Panel -->
+                    <Border Grid.Row="1" Background="{StaticResource SurfaceBrush}" CornerRadius="12" Padding="16" Margin="0,0,0,16">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Background="#1E3A5F" CornerRadius="8" Padding="16,8" Margin="0,0,16,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📊 Total:" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TotalEventsCount" Text="0" Foreground="White" FontWeight="Bold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Background="#1E4D3A" CornerRadius="8" Padding="16,8" Margin="0,0,16,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🟢 Starts:" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="StartEventsCount" Text="0" Foreground="#22C55E" FontWeight="Bold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Background="#4D1E1E" CornerRadius="8" Padding="16,8" Margin="0,0,16,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🔴 Stops:" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="StopEventsCount" Text="0" Foreground="#EF4444" FontWeight="Bold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="WatcherStatusBorder" Background="#4D4D1E" CornerRadius="8" Padding="16,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⚡ Status:" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="WatcherStatusText" Text="Stopped" Foreground="#EAB308" FontWeight="Bold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Events DataGrid -->
+                    <Border Grid.Row="2" Background="{StaticResource SurfaceBrush}" CornerRadius="12" Padding="8">
+                        <DataGrid x:Name="ProcessEventsDataGrid" 
+                                  Style="{StaticResource ModernDataGrid}"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling"
+                                  EnableRowVirtualization="True"
+                                  CanUserSortColumns="True"
+                                  IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="TIME" Binding="{Binding FormattedTime}" Width="100" CanUserSort="True" SortMemberPath="Timestamp"/>
+                                <DataGridTemplateColumn Header="EVENT" Width="80" CanUserSort="True" SortMemberPath="EventType">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{Binding EventBadge}" 
+                                                    CornerRadius="8" 
+                                                    Padding="8,4"
+                                                    HorizontalAlignment="Left">
+                                                <TextBlock Text="{Binding EventType}" 
+                                                           Foreground="White" 
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="PID" Binding="{Binding ProcessId}" Width="70" CanUserSort="True" SortMemberPath="ProcessId"/>
+                                <DataGridTextColumn Header="PROCESS NAME" Binding="{Binding ProcessName}" Width="180" CanUserSort="True" SortMemberPath="ProcessName"/>
+                                <DataGridTextColumn Header="COMMAND LINE" Binding="{Binding CommandLine}" Width="300" CanUserSort="True" SortMemberPath="CommandLine"/>
+                                <DataGridTextColumn Header="PARENT PID" Binding="{Binding ParentId}" Width="80" CanUserSort="True" SortMemberPath="ParentId"/>
+                                <DataGridTextColumn Header="PARENT NAME" Binding="{Binding ParentName}" Width="150" CanUserSort="True" SortMemberPath="ParentName"/>
+                                <DataGridTextColumn Header="USER" Binding="{Binding User}" Width="*" CanUserSort="True" SortMemberPath="User"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>

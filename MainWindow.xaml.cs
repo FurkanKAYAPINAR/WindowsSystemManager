@@ -10,8 +10,11 @@ using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Management;
 using System.ServiceProcess;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -33,6 +36,16 @@ namespace WindowsSystemManager
         private ObservableCollection<ProcessItem> _allProcesses = new();
         private ObservableCollection<ProcessItem> _filteredProcesses = new();
         
+        // Process Watcher
+        private ManagementEventWatcher? _processStartWatcher;
+        private ManagementEventWatcher? _processStopWatcher;
+        private ObservableCollection<ProcessEventItem> _allProcessEvents = new();
+        private ObservableCollection<ProcessEventItem> _filteredProcessEvents = new();
+        private bool _isWatching = false;
+        private int _startEventCount = 0;
+        private int _stopEventCount = 0;
+        private const int MaxEvents = 1000;
+        
         private Forms.NotifyIcon? _notifyIcon;
         private bool _isExiting = false;
 
@@ -42,6 +55,7 @@ namespace WindowsSystemManager
             ServicesDataGrid.ItemsSource = _filteredServices;
             TasksDataGrid.ItemsSource = _filteredTasks;
             ProcessesDataGrid.ItemsSource = _filteredProcesses;
+            ProcessEventsDataGrid.ItemsSource = _filteredProcessEvents;
             
             // Initialize placeholder visibility
             ServicesSearchBox.TextChanged += (s, e) => 
@@ -52,6 +66,9 @@ namespace WindowsSystemManager
                     ? Visibility.Visible : Visibility.Collapsed;
             ProcessesSearchBox.TextChanged += (s, e) => 
                 ProcessesSearchPlaceholder.Visibility = string.IsNullOrEmpty(ProcessesSearchBox.Text) 
+                    ? Visibility.Visible : Visibility.Collapsed;
+            ProcessWatcherSearchBox.TextChanged += (s, e) => 
+                ProcessWatcherSearchPlaceholder.Visibility = string.IsNullOrEmpty(ProcessWatcherSearchBox.Text) 
                     ? Visibility.Visible : Visibility.Collapsed;
             
             // Setup System Tray
@@ -108,6 +125,7 @@ namespace WindowsSystemManager
         private void ExitApplication()
         {
             _isExiting = true;
+            StopProcessWatcher();
             _notifyIcon?.Dispose();
             System.Windows.Application.Current.Shutdown();
         }
@@ -1302,6 +1320,316 @@ namespace WindowsSystemManager
 
         #endregion
 
+        #region Process Watcher
+
+        private void StartProcessWatcher()
+        {
+            try
+            {
+                // Process Start Watcher
+                var startQuery = new WqlEventQuery("SELECT * FROM Win32_ProcessStartTrace");
+                _processStartWatcher = new ManagementEventWatcher(startQuery);
+                _processStartWatcher.EventArrived += OnProcessStart;
+                _processStartWatcher.Start();
+
+                // Process Stop Watcher
+                var stopQuery = new WqlEventQuery("SELECT * FROM Win32_ProcessStopTrace");
+                _processStopWatcher = new ManagementEventWatcher(stopQuery);
+                _processStopWatcher.EventArrived += OnProcessStop;
+                _processStopWatcher.Start();
+
+                _isWatching = true;
+                Dispatcher.Invoke(() =>
+                {
+                    StartStopWatcherButton.Content = "⏹ Stop Monitoring";
+                    WatcherStatusText.Text = "Running";
+                    WatcherStatusText.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94));
+                    WatcherStatusBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 77, 58));
+                    SetStatus("Process Watcher started");
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Error starting Process Watcher: {ex.Message}\n\nMake sure you're running as Administrator.", 
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void StopProcessWatcher()
+        {
+            try
+            {
+                _processStartWatcher?.Stop();
+                _processStartWatcher?.Dispose();
+                _processStartWatcher = null;
+
+                _processStopWatcher?.Stop();
+                _processStopWatcher?.Dispose();
+                _processStopWatcher = null;
+
+                _isWatching = false;
+                Dispatcher.Invoke(() =>
+                {
+                    StartStopWatcherButton.Content = "▶ Start Monitoring";
+                    WatcherStatusText.Text = "Stopped";
+                    WatcherStatusText.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(234, 179, 8));
+                    WatcherStatusBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(77, 77, 30));
+                    SetStatus("Process Watcher stopped");
+                });
+            }
+            catch { }
+        }
+
+        private void OnProcessStart(object sender, EventArrivedEventArgs e)
+        {
+            try
+            {
+                var processId = Convert.ToInt32(e.NewEvent.Properties["ProcessID"].Value);
+                var processName = e.NewEvent.Properties["ProcessName"].Value?.ToString() ?? "Unknown";
+                var parentId = Convert.ToInt32(e.NewEvent.Properties["ParentProcessID"].Value);
+
+                var eventItem = new ProcessEventItem
+                {
+                    Timestamp = DateTime.Now,
+                    EventType = "Start",
+                    ProcessId = processId,
+                    ProcessName = processName,
+                    ParentId = parentId,
+                    ParentName = GetProcessNameById(parentId),
+                    CommandLine = GetProcessCommandLine(processId),
+                    User = GetProcessUser(processId),
+                    EventBadge = CreateFrozenBrush(34, 197, 94) // Green
+                };
+
+                Dispatcher.Invoke(() => AddProcessEvent(eventItem, true));
+            }
+            catch { }
+        }
+
+        private void OnProcessStop(object sender, EventArrivedEventArgs e)
+        {
+            try
+            {
+                var processId = Convert.ToInt32(e.NewEvent.Properties["ProcessID"].Value);
+                var processName = e.NewEvent.Properties["ProcessName"].Value?.ToString() ?? "Unknown";
+                var parentId = Convert.ToInt32(e.NewEvent.Properties["ParentProcessID"].Value);
+
+                var eventItem = new ProcessEventItem
+                {
+                    Timestamp = DateTime.Now,
+                    EventType = "Stop",
+                    ProcessId = processId,
+                    ProcessName = processName,
+                    ParentId = parentId,
+                    ParentName = GetProcessNameById(parentId),
+                    CommandLine = "",
+                    User = "",
+                    EventBadge = CreateFrozenBrush(239, 68, 68) // Red
+                };
+
+                Dispatcher.Invoke(() => AddProcessEvent(eventItem, false));
+            }
+            catch { }
+        }
+
+        private SolidColorBrush CreateFrozenBrush(byte r, byte g, byte b)
+        {
+            var brush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
+            brush.Freeze();
+            return brush;
+        }
+
+        private void AddProcessEvent(ProcessEventItem eventItem, bool isStart)
+        {
+            _allProcessEvents.Insert(0, eventItem);
+            
+            if (isStart)
+                _startEventCount++;
+            else
+                _stopEventCount++;
+
+            // Limit events in memory
+            while (_allProcessEvents.Count > MaxEvents)
+            {
+                _allProcessEvents.RemoveAt(_allProcessEvents.Count - 1);
+            }
+
+            FilterProcessEvents();
+            UpdateProcessEventStats();
+
+            // Auto-scroll
+            if (AutoScrollCheckBox.IsChecked == true && _filteredProcessEvents.Count > 0)
+            {
+                ProcessEventsDataGrid.ScrollIntoView(_filteredProcessEvents[0]);
+            }
+        }
+
+        private void FilterProcessEvents()
+        {
+            var searchText = ProcessWatcherSearchBox.Text?.ToLower() ?? "";
+            
+            _filteredProcessEvents.Clear();
+            var filtered = string.IsNullOrEmpty(searchText)
+                ? _allProcessEvents
+                : _allProcessEvents.Where(e =>
+                    e.ProcessName.ToLower().Contains(searchText) ||
+                    e.ProcessId.ToString().Contains(searchText) ||
+                    e.ParentName.ToLower().Contains(searchText) ||
+                    e.CommandLine.ToLower().Contains(searchText) ||
+                    e.EventType.ToLower().Contains(searchText));
+
+            foreach (var item in filtered)
+            {
+                _filteredProcessEvents.Add(item);
+            }
+        }
+
+        private void UpdateProcessEventStats()
+        {
+            TotalEventsCount.Text = _allProcessEvents.Count.ToString();
+            StartEventsCount.Text = _startEventCount.ToString();
+            StopEventsCount.Text = _stopEventCount.ToString();
+        }
+
+        private string GetProcessNameById(int processId)
+        {
+            try
+            {
+                using var process = Process.GetProcessById(processId);
+                return process.ProcessName;
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
+
+        private string GetProcessCommandLine(int processId)
+        {
+            try
+            {
+                using var searcher = new ManagementObjectSearcher(
+                    $"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {processId}");
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    var cmdLine = obj["CommandLine"]?.ToString() ?? "";
+                    return cmdLine.Length > 200 ? cmdLine.Substring(0, 200) + "..." : cmdLine;
+                }
+            }
+            catch { }
+            return "";
+        }
+
+        private string GetProcessUser(int processId)
+        {
+            try
+            {
+                using var searcher = new ManagementObjectSearcher(
+                    $"SELECT * FROM Win32_Process WHERE ProcessId = {processId}");
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    var ownerInfo = new string[2];
+                    obj.InvokeMethod("GetOwner", ownerInfo);
+                    if (ownerInfo[0] != null)
+                    {
+                        return ownerInfo[1] != null ? $"{ownerInfo[1]}\\{ownerInfo[0]}" : ownerInfo[0];
+                    }
+                }
+            }
+            catch { }
+            return "";
+        }
+
+        private void ToggleProcessWatcher_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isWatching)
+            {
+                StopProcessWatcher();
+            }
+            else
+            {
+                StartProcessWatcher();
+            }
+        }
+
+        private void ClearProcessEvents_Click(object sender, RoutedEventArgs e)
+        {
+            _allProcessEvents.Clear();
+            _filteredProcessEvents.Clear();
+            _startEventCount = 0;
+            _stopEventCount = 0;
+            UpdateProcessEventStats();
+            SetStatus("Process events cleared");
+        }
+
+        private void ProcessWatcherSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            FilterProcessEvents();
+        }
+
+        private void ExportProcessEvents_Click(object sender, RoutedEventArgs e)
+        {
+            if (_allProcessEvents.Count == 0)
+            {
+                System.Windows.MessageBox.Show("No events to export.", "Export", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "JSON files (*.json)|*.json|CSV files (*.csv)|*.csv",
+                FileName = $"ProcessEvents_{DateTime.Now:yyyyMMdd_HHmmss}"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    if (dialog.FileName.EndsWith(".json"))
+                    {
+                        var events = _allProcessEvents.Select(e => new
+                        {
+                            e.Timestamp,
+                            e.EventType,
+                            e.ProcessId,
+                            e.ProcessName,
+                            e.CommandLine,
+                            e.ParentId,
+                            e.ParentName,
+                            e.User
+                        }).ToList();
+                        
+                        var json = JsonSerializer.Serialize(events, new JsonSerializerOptions 
+                        { 
+                            WriteIndented = true 
+                        });
+                        File.WriteAllText(dialog.FileName, json);
+                    }
+                    else
+                    {
+                        var csv = "Timestamp,EventType,ProcessId,ProcessName,CommandLine,ParentId,ParentName,User\n";
+                        foreach (var ev in _allProcessEvents)
+                        {
+                            csv += $"\"{ev.Timestamp:O}\",\"{ev.EventType}\",{ev.ProcessId},\"{ev.ProcessName}\",\"{ev.CommandLine.Replace("\"", "\"\"")}\",{ev.ParentId},\"{ev.ParentName}\",\"{ev.User}\"\n";
+                        }
+                        File.WriteAllText(dialog.FileName, csv);
+                    }
+                    
+                    SetStatus($"Exported {_allProcessEvents.Count} events to {dialog.FileName}");
+                    System.Windows.MessageBox.Show($"Successfully exported {_allProcessEvents.Count} events.", "Export Complete", 
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"Error exporting: {ex.Message}", "Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        #endregion
+
         #region General
 
         private async void RefreshAll_Click(object sender, RoutedEventArgs e)
@@ -1391,6 +1719,23 @@ namespace WindowsSystemManager
         public string CpuPercent { get; set; } = "";
         public string FilePath { get; set; } = "";
         public string Uptime { get; set; } = "";
+        
+        public event PropertyChangedEventHandler? PropertyChanged;
+    }
+
+    public class ProcessEventItem : INotifyPropertyChanged
+    {
+        public DateTime Timestamp { get; set; }
+        public string EventType { get; set; } = "";
+        public int ProcessId { get; set; }
+        public string ProcessName { get; set; } = "";
+        public string CommandLine { get; set; } = "";
+        public int ParentId { get; set; }
+        public string ParentName { get; set; } = "";
+        public string User { get; set; } = "";
+        public SolidColorBrush EventBadge { get; set; } = new SolidColorBrush(Colors.Gray);
+        
+        public string FormattedTime => Timestamp.ToString("HH:mm:ss.fff");
         
         public event PropertyChangedEventHandler? PropertyChanged;
     }

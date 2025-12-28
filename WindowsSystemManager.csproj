@@ -18,14 +18,15 @@
     <Copyright>Copyright © 2025 FurkanKAYAPINAR</Copyright>
     <Product>Windows System Manager</Product>
     <Description>Windows Task Scheduler and Services Management Application by FurkanKAYAPINAR</Description>
-    <Version>1.5.0</Version>
-    <FileVersion>1.5.0.0</FileVersion>
-    <AssemblyVersion>1.5.0.0</AssemblyVersion>
+    <Version>1.6.0</Version>
+    <FileVersion>1.6.0.0</FileVersion>
+    <AssemblyVersion>1.6.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="TaskScheduler" Version="2.11.0" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="8.0.0" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
