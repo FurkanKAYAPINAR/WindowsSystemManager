@@ -5,7 +5,7 @@
 <h1 align="center">Windows System Manager</h1>
 
 <p align="center">
-  <strong>🖥️ A powerful Windows system management tool for Services, Tasks, and Processes</strong>
+  <strong>🖥️ A powerful Windows system management tool for Services, Tasks, Processes & Real-time Monitoring</strong>
 </p>
 
 <p align="center">
@@ -62,6 +62,15 @@
 - **Search by name, PID, or window title**
 - **Open process location** in File Explorer
 - **View active window titles**
+
+### 🔍 Process Watcher (NEW in v1.6.0)
+- **Real-time WMI monitoring** for process start/stop events
+- **Command line capture** for started processes
+- **Parent process tracking** with PID and name
+- **User account info** for each process
+- **Statistics panel** - Total events, Starts, Stops
+- **Event filtering** by name, PID, or command line
+- **Export** events to JSON or CSV format
 
 ### 🎨 User Experience
 - **Modern dark theme** with sleek design
@@ -139,6 +148,16 @@ dotnet run
    - ⏹️ **End** - Terminate selected processes
    - 📁 **Folder** - Open process file location
 
+### Process Watcher (Real-time Monitoring)
+
+1. Navigate to the **🔍 Process Watcher** tab
+2. Click **▶ Start Monitoring** to begin
+3. Watch real-time process events:
+   - 🟢 **Start** - Process started (green badge)
+   - 🔴 **Stop** - Process terminated (red badge)
+4. Use the search box to filter events
+5. Click **💾 Export** to save events as JSON/CSV
+
 ## 📸 Screenshots
 
 <details>
@@ -171,6 +190,7 @@ dotnet run
 |---------|---------|---------|
 | [TaskScheduler](https://www.nuget.org/packages/TaskScheduler/) | 2.11.0 | Windows Task Scheduler API |
 | [System.ServiceProcess.ServiceController](https://www.nuget.org/packages/System.ServiceProcess.ServiceController/) | 8.0.0 | Windows Services Management |
+| [System.Management](https://www.nuget.org/packages/System.Management/) | 8.0.0 | WMI Process Monitoring |
 
 ## 🤝 Contributing
 
